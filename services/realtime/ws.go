@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"layer-api/services/collab"
-	"layer-api/services/note"
 	"layer-api/types"
 	"layer-api/utils"
 	"net/http"
@@ -23,11 +21,11 @@ var upgrader = websocket.Upgrader{
 
 type Handler struct {
 	hub         *Hub
-	noteStore   *note.Store
-	collabStore *collab.Store
+	noteStore   types.NoteStore
+	collabStore types.CollaboratorStore
 }
 
-func NewHandler(hub *Hub, noteStore *note.Store, collabStore *collab.Store) *Handler {
+func NewHandler(hub *Hub, noteStore types.NoteStore, collabStore types.CollaboratorStore) *Handler {
 	return &Handler{
 		hub:         hub,
 		noteStore:   noteStore,

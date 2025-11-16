@@ -6,6 +6,7 @@ import (
 	"layer-api/services/note"
 	"layer-api/services/realtime"
 	"layer-api/services/user"
+	"layer-api/utils"
 	"log"
 	"net/http"
 
@@ -26,6 +27,8 @@ func NewAPIServer(addr string, db *sql.DB) *APIServer {
 
 func (s *APIServer) Run() error {
 	router := mux.NewRouter()
+	router.Use(utils.CORSMiddleware)
+
 	subrouter := router.PathPrefix("/api/v1").Subrouter()
 
 	userStore := user.NewStore(s.db)

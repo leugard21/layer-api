@@ -2,7 +2,6 @@ package realtime
 
 import (
 	"encoding/json"
-	"layer-api/services/note"
 	"layer-api/types"
 	"log"
 
@@ -15,10 +14,10 @@ type Client struct {
 	send      chan []byte
 	userID    int
 	noteID    int
-	noteStore *note.Store
+	noteStore types.NoteStore
 }
 
-func NewClient(hub *Hub, conn *websocket.Conn, userID, noteID int, noteStore *note.Store) *Client {
+func NewClient(hub *Hub, conn *websocket.Conn, userID, noteID int, noteStore types.NoteStore) *Client {
 	return &Client{
 		hub:       hub,
 		conn:      conn,
