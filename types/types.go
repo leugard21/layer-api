@@ -79,3 +79,29 @@ type AddCollaboratorPayload struct {
 	UserID  int   `json:"userId" validate:"required"`
 	CanEdit *bool `json:"canEdit,omitempty"`
 }
+
+type RealtimeMessageType string
+
+const (
+	RealtimeMessageTypeInit     RealtimeMessageType = "init"
+	RealtimeMessageTypePatch    RealtimeMessageType = "patch"
+	RealtimeMessageTypePresence RealtimeMessageType = "presence"
+	RealtimeMessageTypeError    RealtimeMessageType = "error"
+)
+
+type RealtimeClientMessage struct {
+	Type    RealtimeMessageType `json:"type"`
+	NoteID  int                 `json:"noteId"`
+	Version int64               `json:"version,omitempty"`
+	Patch   string              `json:"patch,omitempty"`
+}
+
+type RealtimeServerMessage struct {
+	Type       RealtimeMessageType `json:"type"`
+	NoteID     int                 `json:"noteId"`
+	Version    int64               `json:"version,omitempty"`
+	Patch      string              `json:"patch,omitempty"`
+	Error      string              `json:"error,omitempty"`
+	UserID     int                 `json:"userId,omitempty"`
+	ActiveUser int                 `json:"activeUser,omitempty"`
+}

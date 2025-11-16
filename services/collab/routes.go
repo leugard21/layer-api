@@ -25,25 +25,33 @@ func NewHandler(collabStore types.CollaboratorStore, noteStore types.NoteStore) 
 }
 
 func (h *Handler) RegisterRoutes(router *mux.Router) {
-	router.Handle("/notes/{id}/collaborators", utils.AuthMiddleware(http.HandlerFunc(h.HandleAddCollaborator))).Methods("POST")
-	router.Handle("/notes/{id}/collaborators", utils.AuthMiddleware(http.HandlerFunc(h.HandleListCollaborators))).Methods("GET")
-	router.Handle("/notes/{id}/collaborators/{userId}", utils.AuthMiddleware(http.HandlerFunc(h.HandleRemoveCollaborator))).Methods("DELETE")
+	router.Handle("/notes/{id}/collaborators",
+		utils.AuthMiddleware(http.HandlerFunc(h.HandleAddCollaborator)),
+	).Methods("POST")
+
+	router.Handle("/notes/{id}/collaborators",
+		utils.AuthMiddleware(http.HandlerFunc(h.HandleListCollaborators)),
+	).Methods("GET")
+
+	router.Handle("/notes/{id}/collaborators/{userId}",
+		utils.AuthMiddleware(http.HandlerFunc(h.HandleRemoveCollaborator)),
+	).Methods("DELETE")
 }
 
 func (h *Handler) HandleAddCollaborator(w http.ResponseWriter, r *http.Request) {
-	userID, ok := utils.GetUserIDFromContext(r.Context())
-	if !ok || userID <= 0 {
+	ownerID, ok := utils.GetUserIDFromContext(r.Context())
+	if !ok || ownerID <= 0 {
 		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid token"))
 		return
 	}
 
-	noteId, err := parseIDFromVars(r, "id")
+	noteID, err := parseID(r, "id")
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
-	note, err := h.noteStore.GetNoteByID(noteId)
+	note, err := h.noteStore.GetNoteByID(noteID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			utils.WriteError(w, http.StatusNotFound, fmt.Errorf("note not found"))
@@ -53,7 +61,7 @@ func (h *Handler) HandleAddCollaborator(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if note.OwnerID != userID {
+	if note.OwnerID != ownerID {
 		utils.WriteError(w, http.StatusForbidden, fmt.Errorf("only owner can manage collaborators"))
 		return
 	}
@@ -68,29 +76,42 @@ func (h *Handler) HandleAddCollaborator(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	if payload.UserID == ownerID {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("owner cannot be a collaborator"))
+		return
+	}
+
+	exists, err := h.collabStore.IsCollaborator(noteID, payload.UserID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if exists {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user is already a collaborator"))
+		return
+	}
+
 	canEdit := true
 	if payload.CanEdit != nil {
 		canEdit = *payload.CanEdit
 	}
 
-	if err := h.collabStore.AddCollaborator(noteId, payload.UserID, canEdit); err != nil {
+	if err := h.collabStore.AddCollaborator(noteID, payload.UserID, canEdit); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, map[string]any{
-		"message": "collaborator added/updated",
-	})
+	utils.WriteJSON(w, http.StatusOK, map[string]any{"message": "collaborator added"})
 }
 
 func (h *Handler) HandleListCollaborators(w http.ResponseWriter, r *http.Request) {
-	userID, ok := utils.GetUserIDFromContext(r.Context())
-	if !ok || userID <= 0 {
-		utils.WriteError(w, http.StatusUnauthorized, errors.New("invalid token"))
+	ownerID, ok := utils.GetUserIDFromContext(r.Context())
+	if !ok || ownerID <= 0 {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid token"))
 		return
 	}
 
-	noteID, err := parseIDFromVars(r, "id")
+	noteID, err := parseID(r, "id")
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
@@ -99,15 +120,15 @@ func (h *Handler) HandleListCollaborators(w http.ResponseWriter, r *http.Request
 	note, err := h.noteStore.GetNoteByID(noteID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.WriteError(w, http.StatusNotFound, errors.New("note not found"))
+			utils.WriteError(w, http.StatusNotFound, fmt.Errorf("note not found"))
 			return
 		}
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	if note.OwnerID != userID {
-		utils.WriteError(w, http.StatusForbidden, errors.New("only owner can view collaborators"))
+	if note.OwnerID != ownerID {
+		utils.WriteError(w, http.StatusForbidden, fmt.Errorf("only owner can view collaborators"))
 		return
 	}
 
@@ -121,13 +142,13 @@ func (h *Handler) HandleListCollaborators(w http.ResponseWriter, r *http.Request
 }
 
 func (h *Handler) HandleRemoveCollaborator(w http.ResponseWriter, r *http.Request) {
-	userID, ok := utils.GetUserIDFromContext(r.Context())
-	if !ok || userID <= 0 {
-		utils.WriteError(w, http.StatusUnauthorized, errors.New("invalid token"))
+	ownerID, ok := utils.GetUserIDFromContext(r.Context())
+	if !ok || ownerID <= 0 {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid token"))
 		return
 	}
 
-	noteID, err := parseIDFromVars(r, "id")
+	noteID, err := parseID(r, "id")
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
@@ -136,21 +157,36 @@ func (h *Handler) HandleRemoveCollaborator(w http.ResponseWriter, r *http.Reques
 	note, err := h.noteStore.GetNoteByID(noteID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.WriteError(w, http.StatusNotFound, errors.New("note not found"))
+			utils.WriteError(w, http.StatusNotFound, fmt.Errorf("note not found"))
 			return
 		}
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	if note.OwnerID != userID {
-		utils.WriteError(w, http.StatusForbidden, errors.New("only owner can remove collaborators"))
+	if note.OwnerID != ownerID {
+		utils.WriteError(w, http.StatusForbidden, fmt.Errorf("only owner can remove collaborators"))
 		return
 	}
 
-	targetUserID, err := parseIDFromVars(r, "userId")
+	targetUserID, err := parseID(r, "userId")
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if targetUserID == ownerID {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("owner cannot remove themselves"))
+		return
+	}
+
+	exists, err := h.collabStore.IsCollaborator(noteID, targetUserID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if !exists {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user is not a collaborator"))
 		return
 	}
 
@@ -159,12 +195,10 @@ func (h *Handler) HandleRemoveCollaborator(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, map[string]any{
-		"message": "collaborator removed",
-	})
+	utils.WriteJSON(w, http.StatusOK, map[string]any{"message": "collaborator removed"})
 }
 
-func parseIDFromVars(r *http.Request, key string) (int, error) {
+func parseID(r *http.Request, key string) (int, error) {
 	vars := mux.Vars(r)
 	raw, ok := vars[key]
 	if !ok || raw == "" {

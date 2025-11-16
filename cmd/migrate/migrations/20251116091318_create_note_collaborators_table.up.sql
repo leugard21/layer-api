@@ -5,3 +5,5 @@ CREATE TABLE IF NOT EXISTS note_collaborators (
     can_edit BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_note_collaborators_unique ON note_collaborators (note_id, user_id);
