@@ -20,6 +20,14 @@ type Note struct {
 	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
+type NoteCollaborator struct {
+	ID        int       `json:"id"`
+	NoteID    int       `json:"noteId"`
+	UserID    int       `json:"userId"`
+	CanEdit   bool      `json:"canEdit"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 type UserStore interface {
 	CreateUser(User) (int, error)
 	GetUserByEmail(email string) (*User, error)
@@ -33,6 +41,13 @@ type NoteStore interface {
 	ListNotesByOwner(ownerID int) ([]Note, error)
 	UpdateNote(note Note) error
 	ArchiveNote(id int, ownerID int) error
+}
+
+type CollaboratorStore interface {
+	AddCollaborator(noteID, userID int, canEdit bool) error
+	RemoveCollaborator(noteID, userID int) error
+	ListCollaborators(noteID int) ([]NoteCollaborator, error)
+	IsCollaborator(noteID, userID int) (bool, error)
 }
 
 type RegisterUserPayload struct {

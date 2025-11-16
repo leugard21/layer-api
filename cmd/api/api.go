@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"layer-api/services/collab"
 	"layer-api/services/note"
 	"layer-api/services/user"
 	"log"
@@ -33,6 +34,10 @@ func (s *APIServer) Run() error {
 	noteStore := note.NewStore(s.db)
 	noteHandler := note.NewHandler(noteStore)
 	noteHandler.RegisterRoutes(subrouter)
+
+	collabStore := collab.NewStore(s.db)
+	collabHandler := collab.NewHandler(collabStore)
+	collabHandler.RegisterRoutes(subrouter)
 
 	log.Println("Listening on", s.addr)
 
