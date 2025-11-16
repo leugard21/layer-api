@@ -116,3 +116,25 @@ func (s *Store) ArchiveNote(id int, ownerID int) error {
 
 	return nil
 }
+
+func (s *Store) UpdateNoteContent(id int, content string) error {
+	res, err := s.db.Exec(`UPDATE notes SET content = $1, updated_at = NOW()
+         WHERE id = $2`,
+		content,
+		id,
+	)
+	if err != nil {
+		return err
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}

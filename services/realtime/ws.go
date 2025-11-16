@@ -2,9 +2,11 @@ package realtime
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"layer-api/services/collab"
 	"layer-api/services/note"
+	"layer-api/types"
 	"layer-api/utils"
 	"net/http"
 	"strconv"
@@ -81,8 +83,20 @@ func (h *Handler) handleNoteWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := NewClient(h.hub, conn, userID, noteID)
+	client := NewClient(h.hub, conn, userID, noteID, h.noteStore)
 	h.hub.register <- client
+
+	initMsg := types.RealtimeServerMessage{
+		Type:    types.RealtimeMessageTypeInit,
+		NoteID:  noteID,
+		Content: n.Content,
+	}
+	if data, err := json.Marshal(initMsg); err == nil {
+		select {
+		case client.send <- data:
+		default:
+		}
+	}
 
 	go client.writePump()
 	go client.readPump()

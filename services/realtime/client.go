@@ -2,6 +2,7 @@ package realtime
 
 import (
 	"encoding/json"
+	"layer-api/services/note"
 	"layer-api/types"
 	"log"
 
@@ -9,20 +10,22 @@ import (
 )
 
 type Client struct {
-	hub    *Hub
-	conn   *websocket.Conn
-	send   chan []byte
-	userID int
-	noteID int
+	hub       *Hub
+	conn      *websocket.Conn
+	send      chan []byte
+	userID    int
+	noteID    int
+	noteStore *note.Store
 }
 
-func NewClient(hub *Hub, conn *websocket.Conn, userID, noteID int) *Client {
+func NewClient(hub *Hub, conn *websocket.Conn, userID, noteID int, noteStore *note.Store) *Client {
 	return &Client{
-		hub:    hub,
-		conn:   conn,
-		send:   make(chan []byte, 256),
-		userID: userID,
-		noteID: noteID,
+		hub:       hub,
+		conn:      conn,
+		send:      make(chan []byte, 256),
+		userID:    userID,
+		noteID:    noteID,
+		noteStore: noteStore,
 	}
 }
 
@@ -52,6 +55,11 @@ func (c *Client) readPump() {
 
 		switch msg.Type {
 		case types.RealtimeMessageTypePatch:
+			if err := c.noteStore.UpdateNoteContent(c.noteID, msg.Patch); err != nil {
+				c.sendError("failed to save note")
+				continue
+			}
+
 			serverMsg := types.RealtimeServerMessage{
 				Type:    types.RealtimeMessageTypePatch,
 				NoteID:  c.noteID,

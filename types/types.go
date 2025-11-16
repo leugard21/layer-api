@@ -41,6 +41,7 @@ type NoteStore interface {
 	ListNotesByOwner(ownerID int) ([]Note, error)
 	UpdateNote(note Note) error
 	ArchiveNote(id int, ownerID int) error
+	UpdateNoteContent(id int, content string) error
 }
 
 type CollaboratorStore interface {
@@ -101,6 +102,7 @@ type RealtimeServerMessage struct {
 	NoteID     int                 `json:"noteId"`
 	Version    int64               `json:"version,omitempty"`
 	Patch      string              `json:"patch,omitempty"`
+	Content    string              `json:"content,omitempty"`
 	Error      string              `json:"error,omitempty"`
 	UserID     int                 `json:"userId,omitempty"`
 	ActiveUser int                 `json:"activeUser,omitempty"`
