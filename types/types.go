@@ -10,11 +10,29 @@ type User struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+type Note struct {
+	ID         int       `json:"id"`
+	OwnerID    int       `json:"ownerId"`
+	Title      string    `json:"title"`
+	Content    string    `json:"content"`
+	IsArchived bool      `json:"isArchived"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
+}
+
 type UserStore interface {
 	CreateUser(User) (int, error)
 	GetUserByEmail(email string) (*User, error)
 	GetUserByUsername(username string) (*User, error)
 	GetUserByID(id int) (*User, error)
+}
+
+type NoteStore interface {
+	CreateNote(note Note) (int, error)
+	GetNoteByID(id int) (*Note, error)
+	ListNotesByOwner(ownerID int) ([]Note, error)
+	UpdateNote(note Note) error
+	ArchiveNote(id int, ownerID int) error
 }
 
 type RegisterUserPayload struct {

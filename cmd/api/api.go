@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"layer-api/services/note"
 	"layer-api/services/user"
 	"log"
 	"net/http"
@@ -28,6 +29,10 @@ func (s *APIServer) Run() error {
 	userStore := user.NewStore(s.db)
 	userHandler := user.NewHandler(userStore)
 	userHandler.RegisterRoutes(subrouter)
+
+	noteStore := note.NewStore(s.db)
+	noteHandler := note.NewHandler(noteStore)
+	noteHandler.RegisterRoutes(subrouter)
 
 	log.Println("Listening on", s.addr)
 
