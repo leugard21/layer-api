@@ -3,7 +3,6 @@ package realtime
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"layer-api/services/collab"
 	"layer-api/services/note"
 	"layer-api/utils"
@@ -35,13 +34,15 @@ func NewHandler(hub *Hub, noteStore *note.Store, collabStore *collab.Store) *Han
 }
 
 func (h *Handler) RegisterRoutes(router *mux.Router) {
-	router.Handle("/ws/notes/{id}", http.HandlerFunc(h.handleNoteWS)).Methods("GET")
+	router.Handle("/ws/notes/{id}",
+		utils.AuthMiddleware(http.HandlerFunc(h.handleNoteWS)),
+	).Methods("GET")
 }
 
 func (h *Handler) handleNoteWS(w http.ResponseWriter, r *http.Request) {
 	userID, ok := utils.GetUserIDFromContext(r.Context())
 	if !ok || userID <= 0 {
-		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid token"))
+		utils.WriteError(w, http.StatusUnauthorized, errors.New("invalid token"))
 		return
 	}
 
@@ -49,14 +50,14 @@ func (h *Handler) handleNoteWS(w http.ResponseWriter, r *http.Request) {
 	rawID := vars["id"]
 	noteID, err := strconv.Atoi(rawID)
 	if err != nil || noteID <= 0 {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid note id"))
+		utils.WriteError(w, http.StatusBadRequest, errors.New("invalid note id"))
 		return
 	}
 
 	n, err := h.noteStore.GetNoteByID(noteID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.WriteError(w, http.StatusNotFound, fmt.Errorf("note not found"))
+			utils.WriteError(w, http.StatusNotFound, errors.New("note not found"))
 			return
 		}
 		utils.WriteError(w, http.StatusInternalServerError, err)
@@ -70,7 +71,7 @@ func (h *Handler) handleNoteWS(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !okCollab {
-			utils.WriteError(w, http.StatusForbidden, fmt.Errorf("no access to this note"))
+			utils.WriteError(w, http.StatusForbidden, errors.New("no access to this note"))
 			return
 		}
 	}
@@ -80,8 +81,9 @@ func (h *Handler) handleNoteWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = conn
-	_ = userID
-	_ = noteID
-	_ = h.hub
+	client := NewClient(h.hub, conn, userID, noteID)
+	h.hub.register <- client
+
+	go client.writePump()
+	go client.readPump()
 }
