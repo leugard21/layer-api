@@ -49,3 +49,13 @@ type LoginPayload struct {
 type RefreshPayload struct {
 	RefreshToken string `json:"refreshToken" validate:"required"`
 }
+
+type CreateNotePayload struct {
+	Title   string `json:"title", validate:"max=200"`
+	Content string `json:"content", validate:"max=100000"`
+}
+
+type UpdateNotePayload struct {
+	Title   *string `json:"title,omitempty" validate:"omitempty,max=200"`
+	Content *string `json:"content,omitempty" validate:"omitempty,max=100000"`
+}
