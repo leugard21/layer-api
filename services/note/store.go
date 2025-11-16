@@ -26,7 +26,7 @@ func (s *Store) CreateNote(note types.Note) (int, error) {
 }
 
 func (s *Store) GetNoteByID(id int) (*types.Note, error) {
-	row := s.db.QueryRow(`SELCT id, owner_id, title, content, is_archived, created_at, updated_at
+	row := s.db.QueryRow(`SELECT id, owner_id, title, content, is_archived, created_at, updated_at
 	FROM notes WHERE id = $1 LIMIT 1`, id)
 
 	var n types.Note
@@ -81,7 +81,7 @@ func (s *Store) ListNotesByOwner(ownerID int) ([]types.Note, error) {
 
 func (s *Store) UpdateNote(note types.Note) error {
 	res, err := s.db.Exec(`UPDATE notes SET title = $1, content = $2, updated_at = NOW()
-	WHERE id = $3 NAD owner_id = $4`, note.Title, note.Content, note.ID, note.OwnerID)
+	WHERE id = $3 AND owner_id = $4`, note.Title, note.Content, note.ID, note.OwnerID)
 	if err != nil {
 		return err
 	}

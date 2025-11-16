@@ -23,9 +23,9 @@ func NewHandler(store types.NoteStore) *Handler {
 func (h *Handler) RegisterRoutes(router *mux.Router) {
 	router.Handle("/notes", utils.AuthMiddleware(http.HandlerFunc(h.handleCreateNote))).Methods("POST")
 	router.Handle("/notes", utils.AuthMiddleware(http.HandlerFunc(h.handleListNotes))).Methods("GET")
-	router.Handle("/notes/${id}", utils.AuthMiddleware(http.HandlerFunc(h.handleGetNote))).Methods("GET")
-	router.Handle("/notes/${id}", utils.AuthMiddleware(http.HandlerFunc(h.handleUpdateNote))).Methods("PATCH")
-	router.Handle("/notes/${id}/archive", utils.AuthMiddleware(http.HandlerFunc(h.handleArchiveNote))).Methods("POST")
+	router.Handle("/notes/{id}", utils.AuthMiddleware(http.HandlerFunc(h.handleGetNote))).Methods("GET")
+	router.Handle("/notes/{id}", utils.AuthMiddleware(http.HandlerFunc(h.handleUpdateNote))).Methods("PATCH")
+	router.Handle("/notes/{id}/archive", utils.AuthMiddleware(http.HandlerFunc(h.handleArchiveNote))).Methods("POST")
 }
 
 func (h *Handler) handleCreateNote(w http.ResponseWriter, r *http.Request) {

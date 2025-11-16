@@ -51,8 +51,8 @@ type RefreshPayload struct {
 }
 
 type CreateNotePayload struct {
-	Title   string `json:"title", validate:"max=200"`
-	Content string `json:"content", validate:"max=100000"`
+	Title   string `json:"title" validate:"max=200"`
+	Content string `json:"content" validate:"max=100000"`
 }
 
 type UpdateNotePayload struct {
