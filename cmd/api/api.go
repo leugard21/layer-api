@@ -36,7 +36,7 @@ func (s *APIServer) Run() error {
 	noteHandler.RegisterRoutes(subrouter)
 
 	collabStore := collab.NewStore(s.db)
-	collabHandler := collab.NewHandler(collabStore)
+	collabHandler := collab.NewHandler(collabStore, noteStore)
 	collabHandler.RegisterRoutes(subrouter)
 
 	log.Println("Listening on", s.addr)

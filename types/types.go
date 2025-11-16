@@ -74,3 +74,8 @@ type UpdateNotePayload struct {
 	Title   *string `json:"title,omitempty" validate:"omitempty,max=200"`
 	Content *string `json:"content,omitempty" validate:"omitempty,max=100000"`
 }
+
+type AddCollaboratorPayload struct {
+	UserID  int   `json:"userId" validate:"required"`
+	CanEdit *bool `json:"canEdit,omitempty"`
+}
