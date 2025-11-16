@@ -19,11 +19,13 @@ func NewHandler(store types.UserStore) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/register", h.handleRegister).Methods("POST")
-	router.HandleFunc("/login", h.handleLogin).Methods("POST")
+	router.HandleFunc("/register", h.HandleRegister).Methods("POST")
+	router.HandleFunc("/login", h.HandleLogin).Methods("POST")
+
+	router.Handle("/me", utils.AuthMiddleware(http.HandlerFunc(h.HandleMe))).Methods("GET")
 }
 
-func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	var payload types.RegisterUserPayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
@@ -81,12 +83,13 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	var payload types.LoginPayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
+
 	if err := utils.Validate.Struct(payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
@@ -124,4 +127,24 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
 	})
+}
+
+func (h *Handler) HandleMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := utils.GetUserIDFromContext(r.Context())
+	if !ok || userID <= 0 {
+		utils.WriteError(w, http.StatusUnauthorized, errors.New("invalid token"))
+		return
+	}
+
+	u, err := h.store.GetUserByID(userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			utils.WriteError(w, http.StatusNotFound, errors.New("user not found"))
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, u)
 }
